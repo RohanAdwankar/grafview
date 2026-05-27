@@ -16,37 +16,39 @@ const context = await browser.newContext({
 const filesPage = await context.newPage();
 await filesPage.goto(fileURL);
 await filesPage.bringToFront();
-await filesPage.waitForTimeout(1800);
+await filesPage.waitForTimeout(900);
+await filesPage.getByRole("link", { name: "sre/" }).click();
+await filesPage.waitForTimeout(700);
+await filesPage.getByRole("link", { name: "cluster-health.json" }).click();
+await filesPage.waitForFunction(() => document.body.innerText.includes("SRE Cluster Health"), { timeout: 10000 });
+await filesPage.waitForTimeout(1500);
 
 const grafanaPage = await context.newPage();
 await grafanaPage.goto(`${grafanaURL}/dashboards`, { waitUntil: "domcontentloaded" });
-await grafanaPage.waitForTimeout(1000);
+await grafanaPage.bringToFront();
+await grafanaPage.waitForTimeout(800);
 
-const dashboard = await firstDashboard(grafanaPage);
-await grafanaPage.goto(`${grafanaURL}${dashboard.url}?orgId=1&from=now-6h&to=now&timezone=browser`, {
-  waitUntil: "domcontentloaded",
-});
+await clickText(grafanaPage, "sre");
+await grafanaPage.waitForTimeout(900);
+await clickText(grafanaPage, "SRE Cluster Health");
 
 await grafanaPage.waitForFunction(
   (title) => document.body.innerText.includes(title),
-  dashboard.title,
+  "SRE Cluster Health",
   { timeout: 60000 },
 );
 await grafanaPage.bringToFront();
 await grafanaPage.waitForTimeout(5500);
-await filesPage.bringToFront();
-await filesPage.waitForTimeout(1700);
-await grafanaPage.bringToFront();
-await grafanaPage.waitForTimeout(5500);
 await browser.close();
 
-async function firstDashboard(page) {
-  for (let i = 0; i < 60; i++) {
-    const response = await page.request.get(`${grafanaURL}/api/search?type=dash-db`);
-    const dashboards = await response.json();
-    const dashboard = dashboards.find((item) => item.type === "dash-db" && item.url);
-    if (dashboard) return dashboard;
-    await page.waitForTimeout(1000);
+async function clickText(page, text) {
+  for (let i = 0; i < 30; i++) {
+    const locator = page.getByText(text, { exact: true }).first();
+    if (await locator.count()) {
+      await locator.click();
+      return;
+    }
+    await page.waitForTimeout(500);
   }
-  throw new Error("no provisioned dashboards found");
+  throw new Error(`text not found: ${text}`);
 }

@@ -18,6 +18,9 @@ mkdir -p "$OUT"
 write_demo_dashboard() {
   local path="$1"
   local title="$2"
+  local trend_title="$3"
+  local stat_title="$4"
+  local query="$5"
   mkdir -p "$(dirname "$path")"
   cat >"$path" <<JSON
 {
@@ -28,17 +31,17 @@ write_demo_dashboard() {
   "panels": [
     {
       "type": "timeseries",
-      "title": "Throughput",
+      "title": "$trend_title",
       "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [{ "expr": "sum(rate(demo_throughput_total[5m]))", "refId": "A" }]
+      "targets": [{ "expr": "$query", "refId": "A" }]
     },
     {
       "type": "stat",
-      "title": "Available nodes",
+      "title": "$stat_title",
       "gridPos": { "x": 12, "y": 0, "w": 6, "h": 8 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [{ "expr": "demo_available_nodes", "refId": "A" }]
+      "targets": [{ "expr": "${query}_current", "refId": "A" }]
     },
     {
       "type": "logs",
@@ -55,9 +58,10 @@ JSON
 if [[ -z "$DASHBOARD_DIR" ]]; then
   TMP="$(mktemp -d)"
   DASHBOARD_DIR="$TMP/dashboard"
-  write_demo_dashboard "$DASHBOARD_DIR/cluster/overview.json" "Cluster Overview"
-  write_demo_dashboard "$DASHBOARD_DIR/cluster/queues.json" "Queue Health"
-  write_demo_dashboard "$DASHBOARD_DIR/hardware/nodes.json" "Node Health"
+  write_demo_dashboard "$DASHBOARD_DIR/sre/cluster-health.json" "SRE Cluster Health" "Node health trend" "Healthy nodes" "sre_cluster_health_score"
+  write_demo_dashboard "$DASHBOARD_DIR/sre/incident-response.json" "SRE Incident Response" "Alert volume" "Open incidents" "sre_alerts_total"
+  write_demo_dashboard "$DASHBOARD_DIR/customer/financial-kpis.json" "Customer Financial KPIs" "Monthly spend" "Forecast spend" "customer_monthly_spend"
+  write_demo_dashboard "$DASHBOARD_DIR/customer/usage-kpis.json" "Customer Usage KPIs" "GPU hours" "Active projects" "customer_gpu_hours"
 fi
 
 DASHBOARD_DIR="$(cd "$DASHBOARD_DIR" && pwd)"
