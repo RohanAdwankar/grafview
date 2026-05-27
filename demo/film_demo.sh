@@ -68,6 +68,7 @@ DASHBOARD_DIR="$(cd "$DASHBOARD_DIR" && pwd)"
 LOG="$OUT/grafview-demo.log"
 BIN="$OUT/grafview-demo-bin"
 MP4="$OUT/grafview-demo.mp4"
+GIF="$OUT/grafview-demo.gif"
 
 cleanup() {
   local code=$?
@@ -83,7 +84,7 @@ trap cleanup EXIT
 
 cd "$ROOT"
 go build -o "$BIN" ./cmd/grafview
-rm -f "$MP4"
+rm -f "$MP4" "$GIF"
 rm -rf "$OUT/raw-video"
 docker build \
   --quiet \
@@ -117,4 +118,5 @@ docker run --rm \
   bash -lc 'cp /work/demo/record_demo.mjs /runner/record_demo.mjs && bash /runner/record_screen.sh'
 
 test -s "$MP4"
-echo "$MP4"
+test -s "$GIF"
+printf "%s\n%s\n" "$MP4" "$GIF"

@@ -38,7 +38,7 @@ await grafanaPage.waitForFunction(
   { timeout: 60000 },
 );
 await grafanaPage.bringToFront();
-await grafanaPage.waitForTimeout(5500);
+await grafanaPage.waitForTimeout(2000);
 await browser.close();
 
 async function clickText(page, text) {

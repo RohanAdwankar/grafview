@@ -2,13 +2,15 @@
 
 View Grafana dashboard JSONs with simulated data without configuring data sources.
 
+[![grafview demo](demo/out/grafview-demo.gif)](demo/out/grafview-demo.mp4)
+
+This is useful when needing to preview/demo dashboards without having access to the environment/data the dashboard expects.
+
 ## Install
 
 ```bash
 go install github.com/RohanAdwankar/grafview/cmd/grafview@latest
 ```
-
-Make sure `$(go env GOPATH)/bin` is on your `PATH`.
 
 ## Usage
 

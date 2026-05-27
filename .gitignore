@@ -1,4 +1,6 @@
 .DS_Store
 /grafview
-/demo/out/
+/demo/out/*
+!/demo/out/grafview-demo.mp4
+!/demo/out/grafview-demo.gif
 tmp/
