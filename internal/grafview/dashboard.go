@@ -1,4 +1,4 @@
-package main
+package grafview
 
 import (
 	"crypto/sha1"
@@ -162,9 +162,9 @@ func sanitizeDashboard(f dashboardFile) map[string]any {
 	clean["id"] = nil
 	clean["uid"] = "gmv-" + hashText(f.Source)[:18]
 	if tags, ok := clean["tags"].([]any); ok {
-		clean["tags"] = append(tags, "grafana_mock_viewer")
+		clean["tags"] = append(tags, "grafview")
 	} else {
-		clean["tags"] = []any{"grafana_mock_viewer"}
+		clean["tags"] = []any{"grafview"}
 	}
 	sanitizeValue(clean)
 	return clean

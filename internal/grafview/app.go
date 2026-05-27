@@ -1,4 +1,4 @@
-package main
+package grafview
 
 import (
 	"context"
@@ -21,10 +21,10 @@ type config struct {
 	inputs   []string
 }
 
-func main() {
+func Main() {
 	cfg := parseFlags()
 	if err := run(cfg); err != nil {
-		fmt.Fprintln(os.Stderr, "grafana_mock_viewer:", err)
+		fmt.Fprintln(os.Stderr, "grafview:", err)
 		os.Exit(1)
 	}
 }
@@ -44,7 +44,7 @@ func parseFlags() config {
 
 func run(cfg config) error {
 	if len(cfg.inputs) == 0 {
-		return fmt.Errorf("usage: grafana_mock_viewer [flags] <dashboard.json|folder> [more...]")
+		return fmt.Errorf("usage: grafview [flags] <dashboard.json|folder> [more...]")
 	}
 	files, err := discoverDashboards(cfg.inputs)
 	if err != nil {
@@ -56,7 +56,7 @@ func run(cfg config) error {
 	}
 	defer mock.Close(context.Background())
 
-	runtimeDir, err := os.MkdirTemp("", "grafana-mock-viewer-*")
+	runtimeDir, err := os.MkdirTemp("", "grafview-*")
 	if err != nil {
 		return err
 	}
@@ -77,7 +77,7 @@ func run(cfg config) error {
 		}
 	}
 	if cfg.name == "" {
-		cfg.name = fmt.Sprintf("grafana-mock-viewer-%d", os.Getpid())
+		cfg.name = fmt.Sprintf("grafview-%d", os.Getpid())
 	}
 	g := grafanaInstance{
 		Name:       cfg.name,

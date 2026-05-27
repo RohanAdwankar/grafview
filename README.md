@@ -1,6 +1,16 @@
-# grafana_mock_viewer
+# grafview
 
 View Grafana dashboard JSONs with simulated data without configuring data sources.
+
+## Install
+
+```bash
+go install github.com/RohanAdwankar/grafview/cmd/grafview@latest
+```
+
+Make sure `$(go env GOPATH)/bin` is on your `PATH`.
+
+## Usage
 
 ```bash
 grafview /path/to/dashboard.json

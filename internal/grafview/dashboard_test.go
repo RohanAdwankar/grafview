@@ -1,4 +1,4 @@
-package main
+package grafview
 
 import (
 	"encoding/json"
