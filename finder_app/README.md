@@ -22,4 +22,6 @@ The app is installed at `~/Applications/grafview.app`.
 
 In Finder, right click a dashboard JSON or dashboard folder, then choose `Open With` -> `grafview`.
 
+Opening a folder is the same as running `grafview /path/to/dashboards`: `grafview` recursively finds Grafana JSON files in that folder. If Finder does not show `Open With` for a folder, drag the folder onto `~/Applications/grafview.app`.
+
 The app logs launch output to `/tmp/grafview-finder.log`.
