@@ -44,10 +44,9 @@
 				<key>ActionParameters</key>
 				<dict>
 					<key>COMMAND_STRING</key>
-					<string>export PATH=/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Applications/Docker.app/Contents/Resources/bin:$HOME/go/bin
+					<string>export PATH=/usr/bin:/bin:/usr/sbin:/sbin
 for item in "$@"; do
-  echo "$(date): grafview '$item' PATH=$PATH" &gt;&gt; /tmp/grafview-finder.log
-  grafview "$item" &gt;&gt; /tmp/grafview-finder.log 2&gt;&amp;1 &amp;
+  open -a "$HOME/Applications/grafview.app" "$item"
 done</string>
 					<key>CheckedForUserDefaultShell</key>
 					<true/>

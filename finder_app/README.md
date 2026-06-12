@@ -26,4 +26,6 @@ For dashboard JSON files, `Open With` -> `grafview` also works.
 
 Opening a folder is the same as running `grafview /path/to/dashboards`: `grafview` recursively finds Grafana JSON files in that folder.
 
+The app stays open while `grafview` is running. Quit `grafview` from the Dock or app switcher to stop the Docker container and remove the temporary runtime files.
+
 The app logs launch output to `/tmp/grafview-finder.log`.

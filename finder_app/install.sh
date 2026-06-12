@@ -10,7 +10,7 @@ lsregister="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchS
 
 mkdir -p "$HOME/Applications"
 rm -rf "$app"
-osacompile -o "$app" "$src"
+osacompile -s -o "$app" "$src"
 
 /usr/libexec/PlistBuddy -c "Add :CFBundleIdentifier string com.rohanadwankar.grafview.finder" "$plist" 2>/dev/null || \
 	/usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier com.rohanadwankar.grafview.finder" "$plist"
