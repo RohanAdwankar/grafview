@@ -237,14 +237,17 @@ func (m *mockDataServer) sample(query string, series int, ts int64) float64 {
 	if m.Mode == mockModeSine {
 		return sineSample(query, series, ts)
 	}
-	base := sineSample(query, series, ts)
+	base := 50 + math.Sin(float64(ts)/900+phase(query, series))*18 + float64(series*8)
 	return clamp(base + jaggedNoise(query, series, ts) + spikePulse(query, series, ts))
 }
 
 func sineSample(query string, series int, ts int64) float64 {
+	return 50 + math.Sin(float64(ts)/300+phase(query, series))*35 + float64(series*12)
+}
+
+func phase(query string, series int) float64 {
 	sum := sha1.Sum([]byte(fmt.Sprintf("%s:%d", query, series)))
-	base := float64(binary.BigEndian.Uint32(sum[:4])%1000) / 10
-	return 50 + math.Sin(float64(ts)/300+base)*35 + float64(series*12)
+	return float64(binary.BigEndian.Uint32(sum[:4])%1000) / 10
 }
 
 func hashFloat(query string, series int, bucket int64, salt string) float64 {
@@ -253,11 +256,11 @@ func hashFloat(query string, series int, bucket int64, salt string) float64 {
 }
 
 func jaggedNoise(query string, series int, ts int64) float64 {
-	const bucket = int64(30)
+	const bucket = int64(20)
 	lo := ts / bucket
 	t := float64(ts%bucket) / float64(bucket)
-	a := hashFloat(query, series, lo, "noise")*18 - 9
-	b := hashFloat(query, series, lo+1, "noise")*18 - 9
+	a := hashFloat(query, series, lo, "noise")*28 - 14
+	b := hashFloat(query, series, lo+1, "noise")*28 - 14
 	return a + (b-a)*t
 }
 

@@ -173,6 +173,9 @@ func sanitizeDashboard(f dashboardFile) map[string]any {
 func sanitizeValue(v any) {
 	switch x := v.(type) {
 	case map[string]any:
+		if x["type"] == "timeseries" {
+			shapeTimeseriesPanel(x)
+		}
 		for k, val := range x {
 			if k == "datasource" {
 				x[k] = mockDatasource(val)
@@ -194,6 +197,63 @@ func sanitizeValue(v any) {
 			sanitizeValue(item)
 		}
 	}
+}
+
+func shapeTimeseriesPanel(panel map[string]any) {
+	options := ensureMap(panel, "options")
+	options["legend"] = mergeMap(options["legend"], map[string]any{
+		"displayMode": "list",
+		"placement":   "bottom",
+		"showLegend":  true,
+	})
+	options["tooltip"] = mergeMap(options["tooltip"], map[string]any{"mode": "single", "sort": "none"})
+	fieldConfig := ensureMap(panel, "fieldConfig")
+	defaults := ensureMap(fieldConfig, "defaults")
+	defaults["custom"] = timeseriesCustom(defaults["custom"])
+}
+
+func timeseriesCustom(v any) map[string]any {
+	return mergeMap(v, map[string]any{
+		"axisBorderShow":    false,
+		"axisCenteredZero":  false,
+		"axisColorMode":     "text",
+		"axisLabel":         "",
+		"axisPlacement":     "auto",
+		"barAlignment":      0,
+		"drawStyle":         "line",
+		"fillOpacity":       8,
+		"gradientMode":      "none",
+		"hideFrom":          map[string]any{"legend": false, "tooltip": false, "viz": false},
+		"insertNulls":       false,
+		"lineInterpolation": "linear",
+		"lineWidth":         2,
+		"pointSize":         4,
+		"scaleDistribution": map[string]any{"type": "linear"},
+		"showPoints":        "never",
+		"spanNulls":         true,
+		"stacking":          map[string]any{"group": "A", "mode": "none"},
+		"thresholdsStyle":   map[string]any{"mode": "off"},
+	})
+}
+
+func ensureMap(parent map[string]any, key string) map[string]any {
+	if m, ok := parent[key].(map[string]any); ok {
+		return m
+	}
+	m := map[string]any{}
+	parent[key] = m
+	return m
+}
+
+func mergeMap(v any, add map[string]any) map[string]any {
+	out, _ := v.(map[string]any)
+	if out == nil {
+		out = map[string]any{}
+	}
+	for k, val := range add {
+		out[k] = val
+	}
+	return out
 }
 
 func mockDatasource(ds any) any {
