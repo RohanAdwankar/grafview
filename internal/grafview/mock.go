@@ -16,10 +16,19 @@ import (
 
 type mockDataServer struct {
 	Port   int
+	Mode   string
 	server *http.Server
 }
 
-func startMockDataServer(port int) (*mockDataServer, error) {
+const (
+	mockModeJagged = "jagged"
+	mockModeSine   = "sine"
+)
+
+func startMockDataServer(port int, mode string) (*mockDataServer, error) {
+	if mode != mockModeJagged && mode != mockModeSine {
+		return nil, fmt.Errorf("invalid mock mode %q", mode)
+	}
 	addr := "127.0.0.1:0"
 	if port > 0 {
 		addr = fmt.Sprintf("127.0.0.1:%d", port)
@@ -29,7 +38,7 @@ func startMockDataServer(port int) (*mockDataServer, error) {
 		return nil, err
 	}
 	actual := ln.Addr().(*net.TCPAddr).Port
-	m := &mockDataServer{Port: actual}
+	m := &mockDataServer{Port: actual, Mode: mode}
 	m.server = &http.Server{Handler: m}
 	go func() { _ = m.server.Serve(ln) }()
 	return m, nil
@@ -56,9 +65,9 @@ func (m *mockDataServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (m *mockDataServer) handlePrometheus(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case r.URL.Path == "/api/v1/query_range":
-		writeJSON(w, http.StatusOK, promSuccess("matrix", promMatrix(r)))
+		writeJSON(w, http.StatusOK, promSuccess("matrix", m.promMatrix(r)))
 	case r.URL.Path == "/api/v1/query":
-		writeJSON(w, http.StatusOK, promSuccess("vector", promVector(r.URL.Query().Get("query"))))
+		writeJSON(w, http.StatusOK, promSuccess("vector", m.promVector(r.URL.Query().Get("query"))))
 	case r.URL.Path == "/api/v1/labels":
 		writeJSON(w, http.StatusOK, map[string]any{"status": "success", "data": labelNames()})
 	case strings.HasPrefix(r.URL.Path, "/api/v1/label/") && strings.HasSuffix(r.URL.Path, "/values"):
@@ -74,7 +83,7 @@ func (m *mockDataServer) handlePrometheus(w http.ResponseWriter, r *http.Request
 	case r.URL.Path == "/api/v1/status/buildinfo":
 		writeJSON(w, http.StatusOK, map[string]any{"status": "success", "data": map[string]any{"version": "mock"}})
 	default:
-		writeJSON(w, http.StatusOK, promSuccess("vector", promVector(r.URL.Query().Get("query"))))
+		writeJSON(w, http.StatusOK, promSuccess("vector", m.promVector(r.URL.Query().Get("query"))))
 	}
 }
 
@@ -88,7 +97,7 @@ func promSuccess(resultType string, result any) map[string]any {
 	}
 }
 
-func promMatrix(r *http.Request) []map[string]any {
+func (m *mockDataServer) promMatrix(r *http.Request) []map[string]any {
 	q := r.URL.Query()
 	end := parseUnix(q.Get("end"), time.Now().Unix())
 	start := parseUnix(q.Get("start"), end-6*3600)
@@ -107,7 +116,7 @@ func promMatrix(r *http.Request) []map[string]any {
 	for series := 0; series < 2; series++ {
 		values := make([][]any, 0, 128)
 		for ts := start; ts <= end; ts += step {
-			values = append(values, []any{float64(ts), fmt.Sprintf("%.3f", sample(query, series, ts))})
+			values = append(values, []any{float64(ts), fmt.Sprintf("%.3f", m.sample(query, series, ts))})
 		}
 		out = append(out, map[string]any{
 			"metric": metricLabels(query, series),
@@ -117,11 +126,11 @@ func promMatrix(r *http.Request) []map[string]any {
 	return out
 }
 
-func promVector(query string) []map[string]any {
+func (m *mockDataServer) promVector(query string) []map[string]any {
 	now := time.Now().Unix()
 	return []map[string]any{
-		{"metric": metricLabels(query, 0), "value": []any{float64(now), fmt.Sprintf("%.3f", sample(query, 0, now))}},
-		{"metric": metricLabels(query, 1), "value": []any{float64(now), fmt.Sprintf("%.3f", sample(query, 1, now))}},
+		{"metric": metricLabels(query, 0), "value": []any{float64(now), fmt.Sprintf("%.3f", m.sample(query, 0, now))}},
+		{"metric": metricLabels(query, 1), "value": []any{float64(now), fmt.Sprintf("%.3f", m.sample(query, 1, now))}},
 	}
 }
 
@@ -224,10 +233,38 @@ func parseDurationSeconds(s string, def int64) int64 {
 	return int64(d.Seconds())
 }
 
-func sample(query string, series int, ts int64) float64 {
+func (m *mockDataServer) sample(query string, series int, ts int64) float64 {
+	if m.Mode == mockModeSine {
+		return sineSample(query, series, ts)
+	}
+	base := sineSample(query, series, ts)
+	noise := hashFloat(query, series, ts/15, "noise")*18 - 9
+	spike := 0.0
+	if hashFloat(query, series, ts/45, "spike") > 0.92 {
+		spike = hashFloat(query, series, ts/45, "spike-dir")*50 - 25
+	}
+	return clamp(base + noise + spike)
+}
+
+func sineSample(query string, series int, ts int64) float64 {
 	sum := sha1.Sum([]byte(fmt.Sprintf("%s:%d", query, series)))
 	base := float64(binary.BigEndian.Uint32(sum[:4])%1000) / 10
 	return 50 + math.Sin(float64(ts)/300+base)*35 + float64(series*12)
+}
+
+func hashFloat(query string, series int, bucket int64, salt string) float64 {
+	sum := sha1.Sum([]byte(fmt.Sprintf("%s:%d:%d:%s", query, series, bucket, salt)))
+	return float64(binary.BigEndian.Uint32(sum[:4])) / float64(math.MaxUint32)
+}
+
+func clamp(v float64) float64 {
+	if v < 0 {
+		return 0
+	}
+	if v > 100 {
+		return 100
+	}
+	return v
 }
 
 func shortQuery(query string) string {

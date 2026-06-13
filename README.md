@@ -33,6 +33,7 @@ Flags:
 ```text
 -port        Grafana host port; 0 chooses a free port
 -mock-port   mock datasource host port; 0 chooses a free port
+-mock-mode   mock data shape: jagged or sine
 -image       Grafana Docker image
 -name        Docker container name
 -open        open the local Grafana URL

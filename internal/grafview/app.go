@@ -14,6 +14,7 @@ import (
 type config struct {
 	port     int
 	mockPort int
+	mockMode string
 	image    string
 	name     string
 	open     bool
@@ -33,6 +34,7 @@ func parseFlags() config {
 	cfg := config{}
 	flag.IntVar(&cfg.port, "port", 0, "Grafana host port; 0 chooses a free port")
 	flag.IntVar(&cfg.mockPort, "mock-port", 0, "mock datasource host port; 0 chooses a free port")
+	flag.StringVar(&cfg.mockMode, "mock-mode", mockModeJagged, "mock data shape: jagged or sine")
 	flag.StringVar(&cfg.image, "image", "grafana/grafana:latest", "Grafana Docker image")
 	flag.StringVar(&cfg.name, "name", "", "Docker container name")
 	flag.BoolVar(&cfg.open, "open", true, "open the local Grafana URL")
@@ -50,7 +52,7 @@ func run(cfg config) error {
 	if err != nil {
 		return err
 	}
-	mock, err := startMockDataServer(cfg.mockPort)
+	mock, err := startMockDataServer(cfg.mockPort, cfg.mockMode)
 	if err != nil {
 		return err
 	}

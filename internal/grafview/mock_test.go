@@ -9,7 +9,7 @@ import (
 )
 
 func TestMockPrometheusQueryRange(t *testing.T) {
-	m, err := startMockDataServer(0)
+	m, err := startMockDataServer(0, mockModeJagged)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -30,7 +30,7 @@ func TestMockPrometheusQueryRange(t *testing.T) {
 }
 
 func TestMockLokiQueryRange(t *testing.T) {
-	m, err := startMockDataServer(0)
+	m, err := startMockDataServer(0, mockModeJagged)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -44,6 +44,17 @@ func TestMockLokiQueryRange(t *testing.T) {
 	data := body["data"].(map[string]any)
 	if data["resultType"] != "streams" {
 		t.Fatalf("unexpected result type: %#v", data)
+	}
+}
+
+func TestMockModes(t *testing.T) {
+	jagged := (&mockDataServer{Mode: mockModeJagged}).sample("up", 0, 120)
+	sine := (&mockDataServer{Mode: mockModeSine}).sample("up", 0, 120)
+	if jagged == sine {
+		t.Fatalf("jagged mode matched sine mode: %v", jagged)
+	}
+	if _, err := startMockDataServer(0, "flat"); err == nil {
+		t.Fatal("invalid mock mode succeeded")
 	}
 }
 
