@@ -238,12 +238,7 @@ func (m *mockDataServer) sample(query string, series int, ts int64) float64 {
 		return sineSample(query, series, ts)
 	}
 	base := sineSample(query, series, ts)
-	noise := hashFloat(query, series, ts/15, "noise")*18 - 9
-	spike := 0.0
-	if hashFloat(query, series, ts/45, "spike") > 0.92 {
-		spike = hashFloat(query, series, ts/45, "spike-dir")*50 - 25
-	}
-	return clamp(base + noise + spike)
+	return clamp(base + jaggedNoise(query, series, ts) + spikePulse(query, series, ts))
 }
 
 func sineSample(query string, series int, ts int64) float64 {
@@ -255,6 +250,35 @@ func sineSample(query string, series int, ts int64) float64 {
 func hashFloat(query string, series int, bucket int64, salt string) float64 {
 	sum := sha1.Sum([]byte(fmt.Sprintf("%s:%d:%d:%s", query, series, bucket, salt)))
 	return float64(binary.BigEndian.Uint32(sum[:4])) / float64(math.MaxUint32)
+}
+
+func jaggedNoise(query string, series int, ts int64) float64 {
+	const bucket = int64(30)
+	lo := ts / bucket
+	t := float64(ts%bucket) / float64(bucket)
+	a := hashFloat(query, series, lo, "noise")*18 - 9
+	b := hashFloat(query, series, lo+1, "noise")*18 - 9
+	return a + (b-a)*t
+}
+
+func spikePulse(query string, series int, ts int64) float64 {
+	const bucket = int64(120)
+	window := ts / bucket
+	if hashFloat(query, series, window, "spike") < 0.72 {
+		return 0
+	}
+	center := int64(hashFloat(query, series, window, "spike-center") * float64(bucket))
+	dist := math.Abs(float64(ts%bucket - center))
+	width := 10 + hashFloat(query, series, window, "spike-width")*20
+	if dist > width {
+		return 0
+	}
+	direction := 1.0
+	if hashFloat(query, series, window, "spike-dir") < 0.35 {
+		direction = -1
+	}
+	height := 16 + hashFloat(query, series, window, "spike-height")*24
+	return direction * height * (1 - dist/width)
 }
 
 func clamp(v float64) float64 {
