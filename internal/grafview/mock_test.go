@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 )
@@ -55,6 +56,20 @@ func TestMockModes(t *testing.T) {
 	}
 	if _, err := startMockDataServer(0, "flat"); err == nil {
 		t.Fatal("invalid mock mode succeeded")
+	}
+}
+
+func TestMockRangeAlignsToStableStep(t *testing.T) {
+	m := &mockDataServer{Mode: mockModeJagged}
+	one := m.promMatrix(httptest.NewRequest(http.MethodGet, "/api/v1/query_range?query=up&start=1001&end=1301&step=60", nil))[0]["values"].([][]any)
+	two := m.promMatrix(httptest.NewRequest(http.MethodGet, "/api/v1/query_range?query=up&start=1002&end=1302&step=60", nil))[0]["values"].([][]any)
+	if len(one) != len(two) || len(one) == 0 {
+		t.Fatalf("unexpected values: %#v %#v", one, two)
+	}
+	for i := range one {
+		if one[i][0] != two[i][0] || one[i][1] != two[i][1] {
+			t.Fatalf("shifted query changed old point at %d: %#v != %#v", i, one[i], two[i])
+		}
 	}
 }
 

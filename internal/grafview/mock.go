@@ -111,6 +111,7 @@ func (m *mockDataServer) promMatrix(r *http.Request) []map[string]any {
 			step = 1
 		}
 	}
+	start, end = alignRange(start, end, step)
 	query := q.Get("query")
 	out := make([]map[string]any, 0, 2)
 	for series := 0; series < 2; series++ {
@@ -124,6 +125,18 @@ func (m *mockDataServer) promMatrix(r *http.Request) []map[string]any {
 		})
 	}
 	return out
+}
+
+func alignRange(start, end, step int64) (int64, int64) {
+	if step <= 0 {
+		return start, end
+	}
+	start = ((start + step - 1) / step) * step
+	end = (end / step) * step
+	if start > end {
+		start = end
+	}
+	return start, end
 }
 
 func (m *mockDataServer) promVector(query string) []map[string]any {
