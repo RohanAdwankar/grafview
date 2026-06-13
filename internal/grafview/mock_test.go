@@ -63,13 +63,16 @@ func TestMockRangeAlignsToStableStep(t *testing.T) {
 	m := &mockDataServer{Mode: mockModeJagged}
 	one := m.promMatrix(httptest.NewRequest(http.MethodGet, "/api/v1/query_range?query=up&start=1001&end=1301&step=60", nil))[0]["values"].([][]any)
 	two := m.promMatrix(httptest.NewRequest(http.MethodGet, "/api/v1/query_range?query=up&start=1002&end=1302&step=60", nil))[0]["values"].([][]any)
-	if len(one) != len(two) || len(one) == 0 {
+	if len(one) != len(two) || len(one) < 2 {
 		t.Fatalf("unexpected values: %#v %#v", one, two)
 	}
-	for i := range one {
+	for i := 0; i < len(one)-1; i++ {
 		if one[i][0] != two[i][0] || one[i][1] != two[i][1] {
 			t.Fatalf("shifted query changed old point at %d: %#v != %#v", i, one[i], two[i])
 		}
+	}
+	if one[len(one)-1][0] == two[len(two)-1][0] {
+		t.Fatalf("end point did not advance: %#v %#v", one[len(one)-1], two[len(two)-1])
 	}
 }
 

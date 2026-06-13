@@ -99,25 +99,28 @@ func promSuccess(resultType string, result any) map[string]any {
 
 func (m *mockDataServer) promMatrix(r *http.Request) []map[string]any {
 	q := r.URL.Query()
-	end := parseUnix(q.Get("end"), time.Now().Unix())
-	start := parseUnix(q.Get("start"), end-6*3600)
+	rawEnd := parseUnix(q.Get("end"), time.Now().Unix())
+	start := parseUnix(q.Get("start"), rawEnd-6*3600)
 	step := parseDurationSeconds(q.Get("step"), 60)
 	if step <= 0 {
 		step = 60
 	}
-	if points := (end - start) / step; points > 240 {
-		step = (end - start) / 240
+	if points := (rawEnd - start) / step; points > 240 {
+		step = (rawEnd - start) / 240
 		if step < 1 {
 			step = 1
 		}
 	}
-	start, end = alignRange(start, end, step)
+	start, end := alignRange(start, rawEnd, step)
 	query := q.Get("query")
 	out := make([]map[string]any, 0, 2)
 	for series := 0; series < 2; series++ {
 		values := make([][]any, 0, 128)
 		for ts := start; ts <= end; ts += step {
 			values = append(values, []any{float64(ts), fmt.Sprintf("%.3f", m.sample(query, series, ts))})
+		}
+		if rawEnd > end {
+			values = append(values, []any{float64(rawEnd), fmt.Sprintf("%.3f", m.sample(query, series, rawEnd))})
 		}
 		out = append(out, map[string]any{
 			"metric": metricLabels(query, series),
