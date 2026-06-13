@@ -152,7 +152,7 @@ func (m *mockDataServer) promVector(query string) []map[string]any {
 
 func metricLabels(query string, series int) map[string]string {
 	return map[string]string{
-		"__name__":  "mock_metric",
+		"__name__":  metricName(query),
 		"instance":  fmt.Sprintf("node-%02d", series+1),
 		"rack":      fmt.Sprintf("rack-%c", 'a'+series),
 		"job":       "mock",
@@ -253,12 +253,42 @@ func (m *mockDataServer) sample(query string, series int, ts int64) float64 {
 	if m.Mode == mockModeSine {
 		return sineSample(query, series, ts)
 	}
-	base := 50 + math.Sin(float64(ts)/900+phase(query, series))*18 + float64(series*8)
+	profile := queryProfile(query)
+	base := profile.Center + math.Sin(float64(ts)/profile.Period+phase(query, series))*profile.Amplitude + float64(series)*profile.SeriesGap
 	return clamp(base + jaggedNoise(query, series, ts) + spikePulse(query, series, ts))
 }
 
 func sineSample(query string, series int, ts int64) float64 {
-	return 50 + math.Sin(float64(ts)/300+phase(query, series))*35 + float64(series*12)
+	profile := queryProfile(query)
+	return profile.Center + math.Sin(float64(ts)/(profile.Period/3)+phase(query, series))*profile.Amplitude*1.6 + float64(series)*profile.SeriesGap
+}
+
+type mockProfile struct {
+	Center    float64
+	Amplitude float64
+	Period    float64
+	SeriesGap float64
+}
+
+func queryProfile(query string) mockProfile {
+	return mockProfile{
+		Center:    35 + hashFloat(query, 0, 0, "center")*35,
+		Amplitude: 8 + hashFloat(query, 0, 0, "amplitude")*18,
+		Period:    420 + hashFloat(query, 0, 0, "period")*1100,
+		SeriesGap: 4 + hashFloat(query, 0, 0, "gap")*18,
+	}
+}
+
+func metricName(query string) string {
+	query = strings.TrimSpace(query)
+	if i := strings.LastIndex(query, "("); i >= 0 {
+		query = query[i+1:]
+	}
+	query = strings.Trim(query, " )")
+	if query == "" {
+		return "mock_metric"
+	}
+	return query
 }
 
 func phase(query string, series int) float64 {
